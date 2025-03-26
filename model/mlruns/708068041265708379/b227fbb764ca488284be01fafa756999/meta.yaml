@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/708068041265708379/b227fbb764ca488284be01fafa756999/artifacts
+end_time: 1742403138225
+entry_point_name: ''
+experiment_id: '708068041265708379'
+lifecycle_stage: active
+run_id: b227fbb764ca488284be01fafa756999
+run_name: YOLO_Run_1
+run_uuid: b227fbb764ca488284be01fafa756999
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1742397226197
+status: 3
+tags: []
+user_id: Trung

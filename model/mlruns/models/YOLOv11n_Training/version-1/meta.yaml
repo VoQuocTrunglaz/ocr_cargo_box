@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1742403150459
+current_stage: None
+description: ''
+last_updated_timestamp: 1742403150459
+name: YOLOv11n_Training
+run_id: b227fbb764ca488284be01fafa756999
+run_link: ''
+source: mlflow-artifacts:/708068041265708379/b227fbb764ca488284be01fafa756999/artifacts/yolo_model
+status: READY
+status_message: null
+storage_location: mlflow-artifacts:/708068041265708379/b227fbb764ca488284be01fafa756999/artifacts/yolo_model
+user_id: null
+version: 1

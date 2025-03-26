@@ -1,0 +1,11 @@
+paddlepaddle
+paddleocr 
+Pillow 
+fastapi
+uvicorn
+ultralytics
+opencv-python
+rapidfuzz 
+python-multipart
+pytest
+pytest-cov

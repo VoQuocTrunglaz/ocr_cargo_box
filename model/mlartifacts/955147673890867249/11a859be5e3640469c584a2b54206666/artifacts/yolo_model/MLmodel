@@ -1,0 +1,22 @@
+artifact_path: yolo_model
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.11.9
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.1.0+cpu
+mlflow_version: 2.21.0
+model_size_bytes: 10848569
+model_uuid: 705c69ee69c44f8facff624f2cca53fe
+prompts: null
+run_id: 11a859be5e3640469c584a2b54206666
+utc_time_created: '2025-03-19 16:52:21.137861'
