@@ -1,11 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from app import app
 import os
 
 @pytest.fixture(scope="module")
 def test_client():
-    yield TestClient(app)  # Trả về một instance TestClient
+    client = TestClient(app)
+    yield client  # Chạy test
+    client.close() 
 
 def test_root(test_client):  # Nhận test_client từ fixture
     response = test_client.get("/")
