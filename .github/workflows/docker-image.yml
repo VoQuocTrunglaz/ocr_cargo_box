@@ -43,7 +43,7 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/ocr_cargo_box_api:latest .
+          docker build -t ghcr.io/voquoctrunglaz/ocr_cargo_box/ocr_cargo_box_api:latest .
       
       - name: Push Docker image to GHCR
         run: |
