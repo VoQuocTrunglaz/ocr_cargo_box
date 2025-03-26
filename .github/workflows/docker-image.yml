@@ -28,8 +28,8 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest --cov=app test/  # Chạy test với pytest + coverage
-
+          PYTHONPATH=$(pwd) pytest --cov=main test/
+          
   build-and-push:
     needs: test  # Chỉ chạy khi test thành công
     runs-on: ubuntu-latest
