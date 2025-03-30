@@ -52,7 +52,7 @@ Before setting up the project, ensure you have the following:
      4. The `.pem` file (e.g., `my-ec2-key.pem`) will be downloaded to your computer. Store it in a secure location.
      5. Change the file permissions to secure it (on Linux/Mac):
         ```
-        chmod 400 my-ec2-key.pem
+        chmod 600 my-ec2-key.pem
         ```
      - When launching the EC2 instance, select this key pair in the **Key pair (login)** step.
    - **Configure the Security Group**:
