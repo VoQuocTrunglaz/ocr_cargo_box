@@ -8,3 +8,4 @@ opencv-python
 rapidfuzz 
 python-multipart
 pytest
+pytest-cov
