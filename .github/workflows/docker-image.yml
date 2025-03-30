@@ -4,50 +4,94 @@ on:
   push:
     branches:
       - main  # Chạy khi push lên nhánh main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  test:
+  pre_build:
+    name: 📌 Chuẩn bị môi trường
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: 📥 Lấy code từ GitHub
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: 🔧 Thiết lập môi trường Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: 📦 Cài đặt dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run tests
+      - name: ✅ Chạy kiểm thử
         run: |
           PYTHONPATH=$(pwd) pytest --cov=main test/
-          
-  build-and-push:
-    needs: test  # Chỉ chạy khi test thành công
+
+  build:
+    name: 🏗️ Build & Push Docker Image lên GHCR
+    needs: pre_build  # Chỉ chạy khi pre_build thành công
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: 📥 Lấy code từ GitHub
         uses: actions/checkout@v4
 
-      - name: Convert repository name to lowercase
+      - name: 🔠 Chuyển đổi tên repository thành chữ thường
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry (GHCR)
+      - name: 🔑 Đăng nhập GHCR
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and tag Docker image
+      - name: 🏗️ Build Docker Image
         run: |
           docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest .
 
-      - name: Push Docker image to GHCR
+      - name: 📤 Push Docker Image lên GHCR
         run: |
           docker push ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+
+  deploy:
+    name: 🚀 Triển khai lên EC2
+    needs: build  # Chỉ chạy sau khi build thành công
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔑 Thiết lập SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AWS_KEY }}" > ~/.ssh/aws_key.pem
+          chmod 600 ~/.ssh/aws_key.pem
+          ssh-keyscan -H ${{ secrets.AWS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🛠️ Cài đặt Docker trên EC2
+        run: |
+          ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.AWS_HOST }} << 'EOF'
+            sudo apt update && sudo apt upgrade -y
+            sudo apt install -y docker.io
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker ubuntu
+            newgrp docker
+            echo "✅ Docker đã được cài đặt thành công!"
+          EOF
+
+      - name: 🚀 Deploy Docker Container trên EC2
+        run: |
+          ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.AWS_HOST }} << 'EOF'
+            echo "🚀 Đăng nhập vào GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            echo "📥 Pull image mới nhất từ GHCR"
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            
+            echo "🛑 Dừng & xóa container cũ nếu có"
+            docker stop ocr_api || true
+            docker rm ocr_api || true
+            
+            echo "🚀 Chạy container mới"
+            docker run -d --restart=always -p 80:8000 --name ocr_api ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            
+            echo "✅ Kiểm tra container đang chạy"
+            docker ps
+          EOF
