@@ -79,6 +79,7 @@ jobs:
       - name: 🚀 Deploy Docker Container trên EC2
         run: |
           ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.AWS_HOST }} << 'EOF'
+            echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
             echo "🚀 Đăng nhập vào GHCR"
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
