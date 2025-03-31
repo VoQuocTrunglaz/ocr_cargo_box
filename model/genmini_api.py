@@ -6,14 +6,20 @@ import numpy as np
 from paddleocr import PaddleOCR
 from ultralytics import YOLO
 import google.generativeai as genai
+from pathlib import Path
 
 # 🔹 Cấu hình API Gemini
 API_KEY = "AIzaSyAlL5ivuNQnSQxc7UwKxsSrgRygFsetqLo"
 genai.configure(api_key=API_KEY)
 
+BASE_DIR = Path(__file__).resolve().parents[1]  
+
+# Xác định đường dẫn đến model, ảnh test và thư mục kết quả
+MODEL_PATH = Path(__file__).resolve().parent / "runs" / "detect" / "train" / "weights" / "best.pt"
+
 # 🔹 Load mô hình YOLO và PaddleOCR
-yolo_model = YOLO(r"C:\Trung\OCR_on_text_cargo_box\model\runs\detect\train\weights\best.pt")  # Cập nhật đường dẫn
-ocr = PaddleOCR(lang="en", use_angle_cls=True)
+yolo_model = YOLO(MODEL_PATH)  
+ocr = PaddleOCR(lang="en", use_angle_cls=True, rec_algorithm="CRNN")
 
 # Thư mục lưu vùng ảnh cắt
 OUTPUT_DIR = "cropped_text_regions"
@@ -139,5 +145,5 @@ def process_ocr_with_gemini(image_path):
     print("📦 Kết quả phân loại từ Gemini:\n", classification_result)
 
 # 🔹 Chạy thử nghiệm
-image_path = r"C:\Trung\OCR_on_text_cargo_box\data\valid\images\5_jpg.rf.7b7fff5457230202715601e2cf3bfd5b.jpg"  # Cập nhật đường dẫn ảnh
+image_path = BASE_DIR / "data" / "test" / "images" / "4_jpg.rf.43e07ad086c9d9c9b06005367b48bf41.jpg" # Cập nhật đường dẫn ảnh
 process_ocr_with_gemini(image_path)
