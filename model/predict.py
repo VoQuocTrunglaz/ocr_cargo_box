@@ -1,11 +1,14 @@
 import os
 from ultralytics import YOLO
 from PIL import Image
+from pathlib import Path
 
-BASE_DIR = os.getcwd()
-MODEL_PATH = os.path.join(BASE_DIR, "model", "runs", "detect", "train", "weights", "best.pt")
-IMAGE_PATH = "data/test/images/IMG_20211010-18202277_jpg.rf.a22988c7c34fcff54c16d2545e08514b.jpg"
-RESULTS_DIR = os.path.join(BASE_DIR, "results")
+BASE_DIR = Path(__file__).resolve().parents[1]  
+
+# Xác định đường dẫn đến model, ảnh test và thư mục kết quả
+MODEL_PATH = Path(__file__).resolve().parent / "runs" / "detect" / "train" / "weights" / "best.pt"
+IMAGE_PATH = BASE_DIR / "data" / "test" / "images" / "4_jpg.rf.43e07ad086c9d9c9b06005367b48bf41.jpg"
+RESULTS_DIR = BASE_DIR / "model" / "results"
 
 os.makedirs(RESULTS_DIR, exist_ok=True)
 

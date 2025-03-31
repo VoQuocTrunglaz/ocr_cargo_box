@@ -1,11 +1,15 @@
 # OCR API Deployment to EC2 with GitHub Actions
 
-This project sets up a CI/CD pipeline to deploy an OCR (Optical Character Recognition) API to an AWS EC2 instance using Docker and GitHub Actions. The API is containerized, pushed to GitHub Container Registry (GHCR), and deployed to an EC2 instance for processing cargo box data.
+This project sets up a CI/CD pipeline to deploy an OCR (Optical Character Recognition) API to an AWS EC2 instance using Docker and GitHub Actions. The API leverages YOLO for object detection, PaddleOCR for text recognition, and the Gemini API for text classification to extract and process data from cargo box images. The application is containerized, pushed to GitHub Container Registry (GHCR), and deployed to an EC2 instance running Ubuntu.
 
 ## 📋 Overview
 
-- **Application**: An OCR API for extracting text from cargo box images, built with Python.
-- **CI/CD Pipeline**: GitHub Actions automates testing, building, and deployment.
+- **Application**: A Python-based OCR API for extracting and classifying text from cargo box images
+Technologies:
+- YOLO: Detects text regions in images.
+- PaddleOCR: Recognizes text within detected regions.
+- Gemini API: Classifies and structures extracted text into JSON.
+- **CI/CD Pipeline**: Automated via GitHub Actions for testing, building, and deployment.
 - **Deployment Target**: AWS EC2 instance running Ubuntu.
 - **Container Registry**: GitHub Container Registry (GHCR).
 
