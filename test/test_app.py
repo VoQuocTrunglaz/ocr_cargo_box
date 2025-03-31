@@ -12,7 +12,7 @@ def test_client():
 def test_root(test_client):  # Nhận test_client từ fixture
     response = test_client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Hello, FastAPI is running!"}
+    assert response.json() == {"message": "Hello, OCR API is running!"}
 
 def test_list_uploaded_files(test_client):  # Nhận test_client từ fixture
     response = test_client.get("/uploads/")
@@ -28,7 +28,7 @@ def test_upload_valid_image(test_client):
     # Đọc file và gửi request
     with open(image_path, "rb") as image_file:
         files = {"file": ("4_jpg.rf.43e07ad086c9d9c9b06005367b48bf41.jpg", image_file, "image/jpeg")}
-        response = test_client.post("/upload/", files=files)
+        response = test_client.post("/uploads/", files=files)
 
     # Kiểm tra kết quả
     assert response.status_code == 200
