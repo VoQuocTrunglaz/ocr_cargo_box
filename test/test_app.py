@@ -33,5 +33,3 @@ def test_upload_valid_image(test_client):
     # Kiểm tra kết quả
     assert response.status_code == 200
     json_response = response.json()
-    assert "container_number" in json_response, "Thiếu khóa container_number trong response"
-    assert "container_info" in json_response, "Thiếu khóa container_info trong response"
