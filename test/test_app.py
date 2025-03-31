@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from app import app
+from ocr_api import app
 import os
 
 @pytest.fixture(scope="module")
