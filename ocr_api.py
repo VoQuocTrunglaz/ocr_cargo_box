@@ -52,7 +52,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def home():
     return {"message": "Hello, OCR API is running!"}
 
-@app.post("/uploads")
+@app.post("/uploads/")
 async def upload_file(file: UploadFile = File(...)):
     if not file.filename.lower().endswith((".jpg", ".jpeg", ".png")):
         raise HTTPException(status_code=400, detail="File phải là định dạng JPG hoặc PNG")
