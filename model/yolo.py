@@ -10,14 +10,15 @@ runs = mlflow.search_runs(order_by=["start_time DESC"])
 run_number = len(runs) + 1
 run_name = f"YOLO_Run_{run_number}"
 
+
 with mlflow.start_run(run_name=run_name) as run:
     run_id = run.info.run_id  
 
-    model = YOLO("yolo11n.pt")
+    model = YOLO("yolov5n.pt")
 
-    results = model.train(data="mydata.yaml", epochs=40)
+    results = model.train(data="mydata.yaml", epochs=50)
 
-    mlflow.log_param("epochs", 40)
+    mlflow.log_param("epochs", 50)
     mlflow.log_param("data", "mydata.yaml")
 
     weights_dir = "runs/detect/train/weights"
@@ -46,7 +47,7 @@ with mlflow.start_run(run_name=run_name) as run:
             model_uri = f"runs:/{run_id}/{model_artifact_path}"
             result = mlflow.register_model(
                 model_uri=model_uri,
-                name="YOLOv11n_Training"
+                name="YOLOv5_Training"
             )
 
             print(f"✅ Model registered successfully! Version: {result.version}")
