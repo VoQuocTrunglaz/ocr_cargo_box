@@ -15,24 +15,29 @@ genai.configure(api_key=API_KEY)
 BASE_DIR = os.getcwd()
 MODEL_DIR = os.path.join(BASE_DIR, "model", "runs", "detect")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+MODEL_PATH = os.path.join(MODEL_DIR, "train4", "weights", "best.pt")
 
-def get_latest_model():
-    train_folders = sorted(
-        [f for f in os.listdir(MODEL_DIR) if f.startswith("train")],
-        key=lambda f: os.path.getmtime(os.path.join(MODEL_DIR, f)),
-        reverse=True
-    )
-    if not train_folders:
-        raise FileNotFoundError("Không tìm thấy mô hình YOLO!")
+# def get_latest_model():
+#     train_folders = sorted(
+#         [f for f in os.listdir(MODEL_DIR) if f.startswith("train")],
+#         key=lambda f: os.path.getmtime(os.path.join(MODEL_DIR, f)),
+#         reverse=True
+#     )
+#     if not train_folders:
+#         raise FileNotFoundError("Không tìm thấy mô hình YOLO!")
 
-    model_path = os.path.join(MODEL_DIR, train_folders[0], "weights", "best.pt")
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Không tìm thấy model tại: {model_path}")
+#     model_path = os.path.join(MODEL_DIR, train_folders[0], "weights", "best.pt")
+#     if not os.path.exists(model_path):
+#         raise FileNotFoundError(f"Không tìm thấy model tại: {model_path}")
 
-    return model_path
+#     return model_path
 
-MODEL_PATH = get_latest_model()
+# MODEL_PATH = get_latest_model()
 
+# Khởi tạo Flask
+app = FastAPI(title="OCR Container API", version="1.0", description="API nhận diện chữ trên container")
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # 🔹 Load mô hình YOLO & PaddleOCR
@@ -40,13 +45,7 @@ yolo_model = YOLO(MODEL_PATH)
 ocr = PaddleOCR(lang="en",
                 det_db_box_thresh=0.2, 
                 rec_algorithm="CRNN", 
-                use_angle_cls=True,
                 det_db_unclip_ratio=1.8)
-
-# Khởi tạo Flask
-app = FastAPI(title="OCR Container API", version="1.0", description="API nhận diện chữ trên container")
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.get('/')
 def home():
