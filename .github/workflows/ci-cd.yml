@@ -64,9 +64,9 @@ jobs:
             fi
 
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/\$REPO_NAME/ocr_ui:latest
-            docker stop ocr_ui || true && docker rm ocr_ui || true
-            docker run -d --restart=always -p 80:8501 --name ocr_ui ghcr.io/\$REPO_NAME/ocr_ui:latest
+            sudo docker pull ghcr.io/\$REPO_NAME/ocr_ui:latest
+            sudo docker stop ocr_ui || true && docker rm ocr_ui || true
+            sudo docker run -d --restart=always -p 80:8501 --name ocr_ui ghcr.io/\$REPO_NAME/ocr_ui:latest
           EOF
 
   deploy_api:
@@ -110,11 +110,11 @@ jobs:
 
               echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-              docker pull ghcr.io/\$REPO_NAME/ocr_api:latest
+              sudo docker pull ghcr.io/\$REPO_NAME/ocr_api:latest
 
-              docker stop ocr_api || true
-              docker rm ocr_api || true
+              sudo docker stop ocr_api || true
+              sudo docker rm ocr_api || true
 
-              docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/\$REPO_NAME/ocr_api:latest
+              sudo docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/\$REPO_NAME/ocr_api:latest
             INNER
           EOF
