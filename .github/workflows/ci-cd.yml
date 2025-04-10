@@ -78,22 +78,24 @@ jobs:
           echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/public_key.pem
           chmod 600 ~/.ssh/public_key.pem
           ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts
-
+  
       - name: 🔠 Convert repo name to lowercase
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
+  
       - name: 🚀 SSH vào EC2 Public và triển khai API từ EC2 Private
         run: |
-          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
+          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
             echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/private_key.pem
             chmod 600 ~/.ssh/private_key.pem
             ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts
-
+  
             ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'INNER'
               export REPO_NAME="${{ env.REPO_NAME }}"
+              export GHCR_USER="${{ github.actor }}"
+              export GHCR_PAT="${{ secrets.GHCR_PAT }}"
+  
               echo "✅ Đã SSH vào EC2 Private"
-
-              # 🔧 Cài đặt Docker nếu chưa có
+  
               if ! command -v docker &> /dev/null; then
                 echo "⚙️ Docker chưa cài, tiến hành cài đặt..."
                 sudo apt update && sudo apt install -y docker.io
@@ -104,23 +106,18 @@ jobs:
               else
                 echo "✅ Docker đã có sẵn!"
               fi
-
-              # Đăng nhập GHCR
-              sudo docker login ghcr.io -u ${{ github.actor }} --password "${{ secrets.GHCR_PAT }}"
-              
-              # Pull image với retry nếu cần
-              for i in {1..3}; do
-                echo "🔍 Thử pull image lần $i..."
-                if sudo docker pull ghcr.io/$REPO_NAME/ocr_api:latest; then
-                  echo "✅ Pull image thành công!"
-                  break
-                fi
-                echo "⚠️ Pull thất bại, chờ 10 giây trước khi thử lại..."
-                sleep 10
-              done
-
+  
+              echo "\$GHCR_PAT" | sudo docker login ghcr.io -u \$GHCR_USER --password-stdin
+  
+              (while true; do echo "🔄 Still pulling image..."; sleep 30; done) &
+              KEEPALIVE_PID=\$!
+  
+              sudo docker pull ghcr.io/\$REPO_NAME/ocr_api:latest
+  
+              kill \$KEEPALIVE_PID
+  
               sudo docker stop ocr_api || true
               sudo docker rm ocr_api || true
-              sudo docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/$REPO_NAME/ocr_api:latest
+              sudo docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/\$REPO_NAME/ocr_api:latest
             INNER
           EOF
