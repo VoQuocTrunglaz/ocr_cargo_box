@@ -18,25 +18,25 @@ jobs:
         run: |
           mkdir -p ~/.ssh
 
-          # Ghi key cho EC2 Public
           echo "🔍 Ghi key cho EC2 Public"
           [ -z "${{ secrets.AWS_PUBLIC_KEY }}" ] && echo "❌ AWS_PUBLIC_KEY rỗng" && exit 1 || echo "✅ AWS_PUBLIC_KEY tồn tại"
           echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/aws_public_key.pem
           chmod 600 ~/.ssh/aws_public_key.pem
 
-          # Ghi key cho EC2 Private (nếu khác key public)
           echo "🔍 Ghi key cho EC2 Private"
           [ -z "${{ secrets.AWS_PRIVATE_KEY }}" ] && echo "❌ AWS_PRIVATE_KEY rỗng" && exit 1 || echo "✅ AWS_PRIVATE_KEY tồn tại"
           echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/aws_private_key.pem
           chmod 600 ~/.ssh/aws_private_key.pem
 
-          # Scan EC2 Public host
           echo "🔍 Scan Public host: ${{ secrets.AWS_PUBLIC_HOST }}"
-          ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts || { echo "⚠️ Không thể scan Public host, lỗi: $?"; exit 1; }
+          ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts || {
+            echo "⚠️ Không thể scan Public host, lỗi: $?"; exit 1;
+          }
 
-          # Scan EC2 Private host thông qua ProxyCommand
-          echo "🔍 Scan Private host qua proxy"
-          ssh-keyscan -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts || { echo "⚠️ Không thể scan Private host, lỗi: $?"; exit 1; }
+          echo "🔍 Scan Private host qua proxy từ EC2 Public"
+          ssh -i ~/.ssh/aws_public_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} "ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }}" >> ~/.ssh/known_hosts || {
+            echo "⚠️ Không thể scan Private host, lỗi: $?"; exit 1;
+          }
 
           echo "✅ Đã thiết lập SSH keys và known_hosts"
 
@@ -45,9 +45,7 @@ jobs:
 
       - name: 🔍 Kiểm tra kết nối SSH đến EC2 Private qua Public
         run: |
-          ssh -tt -i ~/.ssh/aws_public_key.pem \
-            -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" \
-            ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
+          ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
             echo "✅ Kết nối SSH đến EC2 Private thành công"
             whoami
             hostname
@@ -55,9 +53,7 @@ jobs:
 
       - name: 🛠️ Cài đặt Docker trên EC2 Private qua Public
         run: |
-          ssh -tt -i ~/.ssh/aws_public_key.pem \
-            -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" \
-            ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
+          ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
             if ! command -v docker &> /dev/null; then
               echo "📦 Cài đặt Docker..."
               sudo apt update && sudo apt upgrade -y
@@ -75,9 +71,7 @@ jobs:
 
       - name: 🚀 Deploy Docker Container trên EC2 Private qua Public
         run: |
-          ssh -tt -i ~/.ssh/aws_public_key.pem \
-            -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" \
-            ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
+          ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
             echo "🚀 Đăng nhập vào GHCR"
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             echo "📥 Pull image mới nhất từ GHCR"
