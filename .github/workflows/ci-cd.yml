@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
 
-
 jobs:
   build:
     name: 🏗️ Build & Push Docker Images
@@ -47,7 +46,7 @@ jobs:
 
       - name: 🚀 SSH và triển khai UI
         run: |
-          ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
+          ssh -i ~/.ssh/aws_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
             export REPO_NAME="${{ env.REPO_NAME }}"
 
             # 🔧 Cài đặt Docker nếu chưa có
@@ -57,16 +56,15 @@ jobs:
               sudo systemctl enable docker
               sudo systemctl start docker
               sudo usermod -aG docker ubuntu
-              newgrp docker
               echo "✅ Docker đã được cài!"
             else
               echo "✅ Docker đã có sẵn!"
             fi
 
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            sudo docker pull ghcr.io/\$REPO_NAME/ocr_ui:latest
-            sudo docker stop ocr_ui || true && docker rm ocr_ui || true
-            sudo docker run -d --restart=always -p 80:8501 --name ocr_ui ghcr.io/\$REPO_NAME/ocr_ui:latest
+            sudo docker login ghcr.io -u ${{ github.actor }} --password "${{ secrets.GHCR_PAT }}"
+            sudo docker pull ghcr.io/$REPO_NAME/ocr_ui:latest
+            sudo docker stop ocr_ui || true && sudo docker rm ocr_ui || true
+            sudo docker run -d --restart=always -p 80:8501 --name ocr_ui ghcr.io/$REPO_NAME/ocr_ui:latest
           EOF
 
   deploy_api:
@@ -86,12 +84,12 @@ jobs:
 
       - name: 🚀 SSH vào EC2 Public và triển khai API từ EC2 Private
         run: |
-          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
+          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
             echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/private_key.pem
             chmod 600 ~/.ssh/private_key.pem
             ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts
 
-            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << INNER
+            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'INNER'
               export REPO_NAME="${{ env.REPO_NAME }}"
               echo "✅ Đã SSH vào EC2 Private"
 
@@ -102,19 +100,15 @@ jobs:
                 sudo systemctl enable docker
                 sudo systemctl start docker
                 sudo usermod -aG docker ubuntu
-                newgrp docker
                 echo "✅ Docker đã được cài!"
               else
                 echo "✅ Docker đã có sẵn!"
               fi
 
-              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-              sudo docker pull ghcr.io/\$REPO_NAME/ocr_api:latest
-
+              sudo docker login ghcr.io -u ${{ github.actor }} --password "${{ secrets.GHCR_PAT }}"
+              sudo docker pull ghcr.io/$REPO_NAME/ocr_api:latest
               sudo docker stop ocr_api || true
               sudo docker rm ocr_api || true
-
-              sudo docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/\$REPO_NAME/ocr_api:latest
+              sudo docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/$REPO_NAME/ocr_api:latest
             INNER
           EOF
