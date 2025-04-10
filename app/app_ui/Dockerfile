@@ -7,7 +7,6 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --prefer-binary -r requirements.txt
 
-
 COPY . .
 
 EXPOSE 8501
