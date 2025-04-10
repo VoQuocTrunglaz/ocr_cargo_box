@@ -1,0 +1,93 @@
+name: 🚀 OCR API CD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy_public:
+    name: 🚀 Triển khai lên EC2 Public
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔑 Thiết lập SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/aws_public_key.pem
+          chmod 600 ~/.ssh/aws_public_key.pem
+          ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🔠 Chuyển tên repository thành chữ thường
+        run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: 🚀 Deploy Docker Container trên EC2 Public
+        run: |
+          ssh -i ~/.ssh/aws_public_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
+            set -e
+
+            echo "🚀 Đăng nhập GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            echo "📥 Pull image từ GHCR"
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+
+            echo "🛑 Dừng & xóa container cũ nếu có"
+            docker stop ocr_api_public || true
+            docker rm ocr_api_public || true
+
+            echo "🚀 Khởi động container mới"
+            docker run -d --restart=always -p 80:8501 --name ocr_api_public ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+
+            echo "✅ Container đang chạy:"
+            docker ps
+          EOF
+
+  deploy_private:
+    name: 🚀 Triển khai lên EC2 Private qua EC2 Public
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Thiết lập SSH key
+        run: |
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/aws_public_key.pem
+          chmod 600 ~/.ssh/aws_public_key.pem
+
+          echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/aws_private_key.pem
+          chmod 600 ~/.ssh/aws_private_key.pem
+
+          ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/aws_public_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} "ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: 🔠 Chuyển tên repository thành chữ thường
+        run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: 🔍 Kiểm tra kết nối đến EC2 Private
+        run: |
+          ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} "echo '✅ Đã kết nối đến EC2 Private'"
+
+      - name: 🚀 Deploy Docker Container trên EC2 Private
+        run: |
+          ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << EOF
+            set -e
+
+            echo "🚀 Đăng nhập GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            echo "📥 Pull image từ GHCR"
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+
+            echo "🛑 Dừng & xóa container cũ nếu có"
+            docker stop ocr_api_private || true
+            docker rm ocr_api_private || true
+
+            echo "🚀 Khởi động container mới"
+            docker run -d --restart=always -p 8000:8000 --name ocr_api_private ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+
+            echo "✅ Container đang chạy:"
+            docker ps
+          EOF
