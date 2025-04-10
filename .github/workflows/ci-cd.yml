@@ -49,9 +49,19 @@ jobs:
         run: |
           ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
             export REPO_NAME="${{ env.REPO_NAME }}"
-            sudo apt update && sudo apt install -y docker.io
-            sudo systemctl enable docker
-            sudo systemctl start docker
+
+            # 🔧 Cài đặt Docker nếu chưa có
+            if ! command -v docker &> /dev/null; then
+              echo "⚙️ Docker chưa cài, tiến hành cài đặt..."
+              sudo apt update && sudo apt install -y docker.io
+              sudo systemctl enable docker
+              sudo systemctl start docker
+              sudo usermod -aG docker ubuntu
+              echo "✅ Docker đã được cài!"
+            else
+              echo "✅ Docker đã có sẵn!"
+            fi
+            
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker pull ghcr.io/\$REPO_NAME/ocr_ui:latest
             docker stop ocr_ui || true && docker rm ocr_ui || true
@@ -62,7 +72,6 @@ jobs:
     name: 🔐 Deploy API (EC2 Private via Jump Host)
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - name: 🔑 Setup SSH key to EC2 Public
         run: |
@@ -85,9 +94,17 @@ jobs:
               export REPO_NAME="${{ env.REPO_NAME }}"
               echo "✅ Đã SSH vào EC2 Private"
 
-              sudo apt update && sudo apt install -y docker.io
-              sudo systemctl enable docker
-              sudo systemctl start docker
+              # 🔧 Cài đặt Docker nếu chưa có
+              if ! command -v docker &> /dev/null; then
+                echo "⚙️ Docker chưa cài, tiến hành cài đặt..."
+                sudo apt update && sudo apt install -y docker.io
+                sudo systemctl enable docker
+                sudo systemctl start docker
+                sudo usermod -aG docker ubuntu
+                echo "✅ Docker đã được cài!"
+              else
+                echo "✅ Docker đã có sẵn!"
+              fi
 
               echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
