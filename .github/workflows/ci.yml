@@ -32,8 +32,13 @@ jobs:
       - name: 🔑 Đăng nhập GHCR
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: 🏗️ Build Docker Image
-        run: docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest .
+      - name: 🏗️ Build UI Image
+        run: docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_ui:latest ./app/app_ui
 
-      - name: 📤 Push Docker Image lên GHCR
-        run: docker push ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+      - name: 🏗️ Build API Image
+        run: docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest ./app/ocr_private
+
+      - name: 📤 Push UI & API Images
+        run: |
+          docker push ghcr.io/${{ env.REPO_NAME }}/ocr_ui:latest
+          docker push ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest
