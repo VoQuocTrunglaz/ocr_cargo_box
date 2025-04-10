@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
 
+
 jobs:
   build:
     name: 🏗️ Build & Push Docker Images
@@ -66,21 +67,21 @@ jobs:
       - name: 🔑 Setup SSH key to EC2 Public
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_PUBLIC_KEY }}" > ~/.ssh/public_key.pem
+          echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/public_key.pem
           chmod 600 ~/.ssh/public_key.pem
-          ssh-keyscan -H ${{ secrets.EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts
 
       - name: 🔠 Convert repo name to lowercase
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: 🚀 SSH vào EC2 Public và triển khai API từ EC2 Private
         run: |
-          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-            echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/private_key.pem
+          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
+            echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/private_key.pem
             chmod 600 ~/.ssh/private_key.pem
-            ssh-keyscan -H ${{ secrets.EC2_PRIVATE_IP }} >> ~/.ssh/known_hosts
+            ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts
 
-            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PRIVATE_IP }} << 'INNER'
+            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'INNER'
               export REPO_NAME="${{ env.REPO_NAME }}"
               echo "✅ Đã SSH vào EC2 Private"
 

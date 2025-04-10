@@ -12,7 +12,6 @@ from ultralytics import YOLO
 import google.generativeai as genai
 import concurrent.futures
 
-# Load .env
 load_dotenv()
 AWS_REGION = os.getenv("AWS_REGION")
 S3_BUCKET = os.getenv("S3_BUCKET")
