@@ -90,7 +90,7 @@ jobs:
             docker rm ocr_api_public || true
             
             echo "🚀 Chạy container mới"
-            docker run -d --restart=always -p 443:8000 --name ocr_api_public ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            docker run -d --restart=always -p 80:8501 --name ocr_api_public ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
             
             echo "✅ Kiểm tra container đang chạy"
             docker ps
