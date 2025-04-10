@@ -85,7 +85,7 @@ resource "aws_instance" "nat_instance" {
   associate_public_ip_address = true
   key_name                    = "myapp"
   source_dest_check           = false # Tắt source/destination check để NAT hoạt động
-  # security_groups             = [aws_security_group.nat_sg.id]
+  #security_groups             = [aws_security_group.nat_sg.id]
 
   user_data = <<-EOF
               #!/bin/bash
