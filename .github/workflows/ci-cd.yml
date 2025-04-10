@@ -46,7 +46,7 @@ jobs:
 
       - name: 🚀 SSH và triển khai UI
         run: |
-          ssh -i ~/.ssh/aws_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
+          ssh -i ~/.ssh/aws_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
             export REPO_NAME="${{ env.REPO_NAME }}"
 
             # 🔧 Cài đặt Docker nếu chưa có
