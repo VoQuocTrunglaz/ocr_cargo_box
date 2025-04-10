@@ -1,123 +1,144 @@
-name: OCR Full CI/CD
+name: OCR API CI/CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  build:
-    name: 🏗️ Build & Push Docker Images
+  pre_build:
+    name: 📌 Chuẩn bị môi trường
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout source
+      - name: 📥 Lấy code từ GitHub
         uses: actions/checkout@v4
 
-      - name: 🔠 Convert repo name to lowercase
+      - name: 🔧 Thiết lập môi trường Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: 📦 Cài đặt dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: ✅ Chạy kiểm thử
+        run: |
+          PYTHONPATH=$(pwd) pytest --cov=main test/
+
+  build:
+    name: 🏗️ Build & Push Docker Image lên GHCR
+    needs: pre_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Lấy code từ GitHub
+        uses: actions/checkout@v4
+
+      - name: 🔠 Chuyển đổi tên repository thành chữ thường
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: 🔑 Login GHCR
+      - name: 🔑 Đăng nhập GHCR
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: 🏗️ Build UI Image
-        run: docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_ui:latest ./app/app_ui
-
-      - name: 🏗️ Build API Image
-        run: docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest ./app/ocr_private
-
-      - name: 📤 Push UI & API Images
+      - name: 🏗️ Build Docker Image
         run: |
-          docker push ghcr.io/${{ env.REPO_NAME }}/ocr_ui:latest
-          docker push ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest
+          docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest .
 
-  deploy_ui:
-    name: 🚀 Deploy UI (EC2 Public)
+      - name: 📤 Push Docker Image lên GHCR
+        run: |
+          docker push ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+
+  deploy_public:
+    name: 🚀 Triển khai lên EC2 Public
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: 🔑 SSH Key Setup
+      - name: 🔑 Thiết lập SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/aws_key.pem
-          chmod 600 ~/.ssh/aws_key.pem
+          echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/aws_public_key.pem
+          chmod 600 ~/.ssh/aws_public_key.pem
           ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🔠 Convert repo name to lowercase
+      - name: 🔠 Chuyển đổi tên repository thành chữ thường
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: 🚀 SSH và triển khai UI
+        
+      - name: 🛠️ Cài đặt Docker trên EC2 Public
         run: |
-          ssh -i ~/.ssh/aws_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
-            export REPO_NAME="${{ env.REPO_NAME }}"
-
-            # 🔧 Cài đặt Docker nếu chưa có
-            if ! command -v docker &> /dev/null; then
-              echo "⚙️ Docker chưa cài, tiến hành cài đặt..."
-              sudo apt update && sudo apt install -y docker.io
-              sudo systemctl enable docker
-              sudo systemctl start docker
-              sudo usermod -aG docker ubuntu
-              echo "✅ Docker đã được cài!"
-            else
-              echo "✅ Docker đã có sẵn!"
-            fi
-
-            sudo docker login ghcr.io -u ${{ github.actor }} --password "${{ secrets.GHCR_PAT }}"
-            sudo docker pull ghcr.io/$REPO_NAME/ocr_ui:latest
-            sudo docker stop ocr_ui || true && sudo docker rm ocr_ui || true
-            sudo docker run -d --restart=always -p 80:8501 --name ocr_ui ghcr.io/$REPO_NAME/ocr_ui:latest
+          ssh -i ~/.ssh/aws_public_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
+            sudo apt update && sudo apt upgrade -y
+            sudo apt install -y docker.io
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker ubuntu
+            newgrp docker
+            echo "✅ Docker đã được cài đặt thành công!"
           EOF
 
-  deploy_api:
-    name: 🔐 Deploy API (EC2 Private via Jump Host)
+      - name: 🚀 Deploy Docker Container trên EC2 Public
+        run: |
+          ssh -i ~/.ssh/aws_public_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
+            echo "🚀 Đăng nhập vào GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            echo "📥 Pull image mới nhất từ GHCR"
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            
+            echo "🛑 Dừng & xóa container cũ nếu có"
+            docker stop ocr_api_public || true
+            docker rm ocr_api_public || true
+            
+            echo "🚀 Chạy container mới"
+            docker run -d --restart=always -p 443:8000 --name ocr_api_public ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            
+            echo "✅ Kiểm tra container đang chạy"
+            docker ps
+          EOF
+
+  deploy_private:
+    name: 🚀 Triển khai lên EC2 Private
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: 🔑 Setup SSH key to EC2 Public
+      - name: 🔑 Thiết lập SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.AWS_PUBLIC_KEY }}" > ~/.ssh/public_key.pem
-          chmod 600 ~/.ssh/public_key.pem
-          ssh-keyscan -H ${{ secrets.AWS_PUBLIC_HOST }} >> ~/.ssh/known_hosts
-  
-      - name: 🔠 Convert repo name to lowercase
+          echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/aws_private_key.pem
+          chmod 600 ~/.ssh/aws_private_key.pem
+          ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🔠 Chuyển đổi tên repository thành chữ thường
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-  
-      - name: 🚀 SSH vào EC2 Public và triển khai API từ EC2 Private
+        
+      - name: 🛠️ Cài đặt Docker trên EC2 Private
         run: |
-          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
-            echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/private_key.pem
-            chmod 600 ~/.ssh/private_key.pem
-            ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts
-  
-            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=60 ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'INNER'
-              export REPO_NAME="${{ env.REPO_NAME }}"
-              export GHCR_USER="${{ github.actor }}"
-              export GHCR_PAT="${{ secrets.GHCR_PAT }}"
-  
-              echo "✅ Đã SSH vào EC2 Private"
-  
-              if ! command -v docker &> /dev/null; then
-                echo "⚙️ Docker chưa cài, tiến hành cài đặt..."
-                sudo apt update && sudo apt install -y docker.io
-                sudo systemctl enable docker
-                sudo systemctl start docker
-                sudo usermod -aG docker ubuntu
-                echo "✅ Docker đã được cài!"
-              else
-                echo "✅ Docker đã có sẵn!"
-              fi
-  
-              echo "\$GHCR_PAT" | sudo docker login ghcr.io -u \$GHCR_USER --password-stdin
-  
-              (while true; do echo "🔄 Still pulling image..."; sleep 30; done) &
-              KEEPALIVE_PID=\$!
-  
-              sudo docker pull ghcr.io/\$REPO_NAME/ocr_api:latest
-  
-              kill \$KEEPALIVE_PID
-  
-              sudo docker stop ocr_api || true
-              sudo docker rm ocr_api || true
-              sudo docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/\$REPO_NAME/ocr_api:latest
-            INNER
+          ssh -i ~/.ssh/aws_private_key.pem ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
+            sudo apt update && sudo apt upgrade -y
+            sudo apt install -y docker.io
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker ubuntu
+            newgrp docker
+            echo "✅ Docker đã được cài đặt thành công!"
+          EOF
+
+      - name: 🚀 Deploy Docker Container trên EC2 Private
+        run: |
+          ssh -i ~/.ssh/aws_private_key.pem ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'EOF'
+            echo "🚀 Đăng nhập vào GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            echo "📥 Pull image mới nhất từ GHCR"
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            
+            echo "🛑 Dừng & xóa container cũ nếu có"
+            docker stop ocr_api_private || true
+            docker rm ocr_api_private || true
+            
+            echo "🚀 Chạy container mới"
+            docker run -d --restart=always -p 8000:8000 --name ocr_api_private ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            
+            echo "✅ Kiểm tra container đang chạy"
+            docker ps
           EOF
