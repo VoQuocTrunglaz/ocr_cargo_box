@@ -86,12 +86,12 @@ jobs:
 
       - name: 🚀 SSH vào EC2 Public và triển khai API từ EC2 Private
         run: |
-          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << 'EOF'
+          ssh -i ~/.ssh/public_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
             echo "${{ secrets.AWS_PRIVATE_KEY }}" > ~/.ssh/private_key.pem
             chmod 600 ~/.ssh/private_key.pem
             ssh-keyscan -H ${{ secrets.AWS_PRIVATE_HOST }} >> ~/.ssh/known_hosts
 
-            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << 'INNER'
+            ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << INNER
               export REPO_NAME="${{ env.REPO_NAME }}"
               echo "✅ Đã SSH vào EC2 Private"
 
