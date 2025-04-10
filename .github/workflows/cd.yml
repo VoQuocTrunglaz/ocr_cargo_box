@@ -28,14 +28,14 @@ jobs:
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             echo "📥 Pull image từ GHCR"
-            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_ui:latest
 
             echo "🛑 Dừng & xóa container cũ nếu có"
-            docker stop ocr_api_public || true
-            docker rm ocr_api_public || true
+            docker stop ocr_ui || true
+            docker rm ocr_ui || true
 
             echo "🚀 Khởi động container mới"
-            docker run -d --restart=always -p 80:8501 --name ocr_api_public ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            docker run -d --restart=always -p 80:8501 --name ocr_ui ghcr.io/${{ env.REPO_NAME }}/ocr_ui:latest
 
             echo "✅ Container đang chạy:"
             docker ps
@@ -79,14 +79,14 @@ jobs:
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             echo "📥 Pull image từ GHCR"
-            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest
 
             echo "🛑 Dừng & xóa container cũ nếu có"
-            docker stop ocr_api_private || true
-            docker rm ocr_api_private || true
+            docker stop ocr_api || true
+            docker rm ocr_api || true
 
             echo "🚀 Khởi động container mới"
-            docker run -d --restart=always -p 8000:8000 --name ocr_api_private ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
+            docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest
 
             echo "✅ Container đang chạy:"
             docker ps
