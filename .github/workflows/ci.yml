@@ -1,0 +1,39 @@
+name: 🔨 OCR API CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  pre_build:
+    name: 📌 Chuẩn bị môi trường
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Lấy code từ GitHub
+        uses: actions/checkout@v4
+
+      - name: 🔧 Thiết lập môi trường Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+  build:
+    name: 🏗️ Build & Push Docker Image lên GHCR
+    needs: pre_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Lấy code từ GitHub
+        uses: actions/checkout@v4
+
+      - name: 🔠 Chuyển đổi tên repository thành chữ thường
+        run: echo "REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: 🔑 Đăng nhập GHCR
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: 🏗️ Build Docker Image
+        run: docker build -t ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest .
+
+      - name: 📤 Push Docker Image lên GHCR
+        run: docker push ghcr.io/${{ env.REPO_NAME }}/ocr_cargo_box_api:latest
