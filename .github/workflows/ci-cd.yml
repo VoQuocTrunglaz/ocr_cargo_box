@@ -57,11 +57,12 @@ jobs:
               sudo systemctl enable docker
               sudo systemctl start docker
               sudo usermod -aG docker ubuntu
+              newgrp docker
               echo "✅ Docker đã được cài!"
             else
               echo "✅ Docker đã có sẵn!"
             fi
-            
+
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker pull ghcr.io/\$REPO_NAME/ocr_ui:latest
             docker stop ocr_ui || true && docker rm ocr_ui || true
@@ -101,6 +102,7 @@ jobs:
                 sudo systemctl enable docker
                 sudo systemctl start docker
                 sudo usermod -aG docker ubuntu
+                newgrp docker
                 echo "✅ Docker đã được cài!"
               else
                 echo "✅ Docker đã có sẵn!"
