@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-ultralytics
-opencv-python-headless
-python-dotenv
-google-generativeai
-boto3
-Pillow
