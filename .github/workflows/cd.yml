@@ -75,19 +75,19 @@ jobs:
           ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << EOF
             set -e
 
-            echo "🚀 Đăng nhập GHCR"
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-            echo "📥 Pull image từ GHCR"
-            docker pull ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest
-
+            echo "🚀 Đăng nhập Docker Hub"
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+  
+            echo "📥 Pull image từ Docker Hub"
+            docker pull voquoctrunglaz/app_api:latest
+  
             echo "🛑 Dừng & xóa container cũ nếu có"
-            docker stop ocr_api || true
-            docker rm ocr_api || true
-
+            docker stop app_api || true
+            docker rm app_api || true
+  
             echo "🚀 Khởi động container mới"
-            docker run -d --restart=always -p 8000:8000 --name ocr_api ghcr.io/${{ env.REPO_NAME }}/ocr_api:latest
-
+            docker run -d --restart=always -p 8000:8000 --name app_api voquoctrunglaz/app_api:latest
+  
             echo "✅ Container đang chạy:"
             docker ps
           EOF
