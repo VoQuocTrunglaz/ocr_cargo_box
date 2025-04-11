@@ -24,6 +24,20 @@ jobs:
           ssh -i ~/.ssh/aws_public_key.pem ubuntu@${{ secrets.AWS_PUBLIC_HOST }} << EOF
             set -e
 
+            echo "🐳 Kiểm tra & cài đặt Docker nếu cần"
+            if ! command -v docker &> /dev/null; then
+              echo "⚙️ Cài Docker..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker ubuntu
+              newgrp docker
+              echo "✅ Docker đã được cài đặt"
+            else
+              echo "✅ Docker đã có sẵn"
+            fi
+
             echo "🚀 Đăng nhập GHCR"
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
@@ -74,6 +88,20 @@ jobs:
         run: |
           ssh -i ~/.ssh/aws_public_key.pem -o ProxyCommand="ssh -i ~/.ssh/aws_public_key.pem -W %h:%p ubuntu@${{ secrets.AWS_PUBLIC_HOST }}" ubuntu@${{ secrets.AWS_PRIVATE_HOST }} << EOF
             set -e
+
+            echo "🐳 Kiểm tra & cài đặt Docker nếu cần"
+            if ! command -v docker &> /dev/null; then
+              echo "⚙️ Cài Docker..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker ubuntu
+              newgrp docker
+              echo "✅ Docker đã được cài đặt"
+            else
+              echo "✅ Docker đã có sẵn"
+            fi
 
             echo "🚀 Đăng nhập Docker Hub"
             echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
