@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocr-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ocr-app
+  template:
+    metadata:
+      labels:
+        app: ocr-app
+    spec:
+      containers:
+      - name: ocr-app
+        image: voquoctrung12/ocr-container-api:v1
+        ports:
+        - containerPort: 8000

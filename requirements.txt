@@ -1,0 +1,10 @@
+paddlepaddle
+paddleocr 
+fastapi
+uvicorn
+ultralytics
+opencv-python
+python-multipart
+pytest
+pytest-cov
+google-generativeai
